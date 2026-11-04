@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Favor at Versailles</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c1533;
+    --panel:#15224f;
+    --gold:#e2b544;
+    --gold-dim:#a8842c;
+    --text:#eef1fb;
+    --muted:#aab3d6;
+    --bad:#d9534f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    min-height:100vh;
+    background:radial-gradient(circle at 50% 0%,#1d2f6e 0%,var(--bg) 70%);
+    color:var(--text);
+    font-family:'IM Fell English',Georgia,serif;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 16px;
+  }
+  .card{
+    width:100%;max-width:620px;
+    background:var(--panel);
+    border:2px solid var(--gold-dim);
+    border-radius:6px;
+    padding:28px 26px;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  h1{
+    font-family:'Cinzel',serif;font-weight:800;
+    color:var(--gold);text-align:center;
+    font-size:clamp(1.6rem,6vw,2.3rem);letter-spacing:.04em;
+  }
+  .fleur{text-align:center;color:var(--gold);font-size:1.8rem;margin-bottom:6px}
+  .year{
+    font-family:'Cinzel',serif;color:var(--gold);
+    font-size:.95rem;letter-spacing:.15em;margin-bottom:4px
+  }
+  h2{font-family:'Cinzel',serif;font-size:1.35rem;margin-bottom:14px}
+  p{font-size:1.15rem;line-height:1.55;margin-bottom:18px}
+  .meters{display:grid;gap:8px;margin-bottom:22px}
+  .meter{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:10px;font-size:1rem}
+  .bar{height:10px;background:#0a1230;border:1px solid var(--gold-dim);border-radius:5px;overflow:hidden}
+  .fill{height:100%;background:var(--gold);transition:width .4s}
+  .fill.low{background:var(--bad)}
+  button{
+    display:block;width:100%;text-align:left;
+    background:transparent;color:var(--text);
+    border:1px solid var(--gold-dim);border-radius:4px;
+    padding:13px 16px;margin-bottom:10px;
+    font-family:inherit;font-size:1.1rem;cursor:pointer;
+    transition:background .2s,border-color .2s;
+  }
+  button:hover{background:rgba(226,181,68,.12);border-color:var(--gold)}
+  button.main{text-align:center;background:var(--gold);color:var(--bg);font-family:'Cinzel',serif;font-weight:600;border:none}
+  button.main:hover{background:#f0c95e}
+  .fact{
+    border-left:3px solid var(--gold);
+    background:rgba(0,0,0,.2);
+    padding:12px 14px;margin-bottom:18px;
+    font-style:italic;font-size:1.3rem;line-height:1.5;
+  }
+  .fact b{font-style:normal;color:var(--gold);font-family:'Cinzel',serif;font-size:.85rem;letter-spacing:.1em;display:block;margin-bottom:4px}
+  .result{color:var(--muted);margin-bottom:12px;font-size:1rem}
+</style>
+</head>
+<body>
+<div class="card" id="game"></div>
+
+<script>
+const scenes = [
+  {
+    year:"1682", title:"Arrival",
+    text:"Your family sided against the crown during the Fronde. Now Louis XIV has moved his entire court to Versailles, and anyone who matters lives there. You arrive with a trunk of borrowed silk.",
+    choices:[
+      {t:"Rent cramped rooms inside the palace", e:{favor:1,wealth:-1},
+       f:"Courtiers fought over tiny rooms at Versailles. Being near the king mattered more than comfort."},
+      {t:"Stay in a cheaper house in town", e:{favor:-1,wealth:1},
+       f:"Louis noticed who was missing. Staying away from court was a quick way to be forgotten."}
+    ]
+  },
+  {
+    year:"1682", title:"The Lever",
+    text:"Dawn. The king is waking, and the most powerful men in France crowd outside his bedchamber.",
+    choices:[
+      {t:"Bribe an usher to get you inside", e:{favor:2,wealth:-2},
+       f:"The lever was the king's daily waking ceremony. Great nobles competed for the honor of handing him his shirt."},
+      {t:"Wait politely in the hall", e:{},
+       f:"Etiquette at Versailles ranked every noble. Your place in the ceremony showed your place in France."}
+    ]
+  },
+  {
+    year:"1683", title:"Old Grudges",
+    text:"A duke mocks your family's role in the Fronde in front of the whole court. Everyone turns to see what you'll do.",
+    choices:[
+      {t:"Swear total loyalty to the king", e:{favor:2,conscience:-1},
+       f:"The Fronde (1648–1653) was a revolt of nobles and the Paris parlement during Louis's childhood. He never trusted independent nobles again."},
+      {t:"Defend your family's honor", e:{favor:-2,conscience:1},
+       f:"Absolutism meant no rival power centers. Nobles who acted independently lost the king's favor."}
+    ]
+  },
+  {
+    year:"1684", title:"Colbert's Offer",
+    text:"Agents of Colbert, the king's finance minister, invite you to invest in a royal tapestry workshop.",
+    choices:[
+      {t:"Invest in French industry", e:{wealth:-2,favor:1},
+       f:"Colbert practiced mercantilism: build French industry, tax foreign imports, and export more than you import."},
+      {t:"Buy cheap Dutch cloth to resell", e:{wealth:2,favor:-1},
+       f:"Colbert raised tariffs on Dutch goods. The Dutch Republic was France's main commercial rival."}
+    ]
+  },
+  {
+    year:"1684", title:"The Card Table",
+    text:"The stakes are high at the evening card game, and the king is watching.",
+    choices:[
+      {t:"Play boldly", gamble:true,
+       f:"Gambling, fashion, and parties drained noble fortunes. In debt, nobles relied on royal pensions, just as Louis intended."},
+      {t:"Watch and applaud", e:{favor:-1},
+       f:"Versailles was designed to keep nobles busy with status games instead of politics."}
+    ]
+  },
+  {
+    year:"1685", title:"A Letter From Home",
+    text:"The royal intendant demands more taxes from your province. Your steward suggests squeezing your peasants harder to pay for life at court.",
+    choices:[
+      {t:"Squeeze them", e:{wealth:2,conscience:-2},
+       f:"Nobles were mostly exempt from the main tax, the taille. Peasants carried the burden."},
+      {t:"Lower their rents", e:{wealth:-2,conscience:2},
+       f:"Intendants were royal officials, often non-nobles, who ran the provinces. They owed everything to the king, not to local nobles."}
+    ]
+  },
+  {
+    year:"1685", title:"A Knock at Night",
+    text:"Louis has revoked the Edict of Nantes. Protestantism is now illegal in France. Your Huguenot cousin is at your door.",
+    choices:[
+      {t:"Hide him in your rooms", e:{conscience:2,favor:-2}, flag:true,
+       f:"The Edict of Fontainebleau (1685) ended the toleration granted in 1598. One king, one law, one faith."},
+      {t:"Pay to smuggle him to the Dutch Republic", e:{conscience:2,wealth:-2}, flag:true,
+       f:"Around 200,000 Huguenots fled to the Dutch Republic, England, and Prussia, taking valuable skills with them."},
+      {t:"Turn him in", e:{favor:2,conscience:-3},
+       f:"Dragonnades forced Huguenots to convert by quartering soldiers in their homes."}
+    ]
+  },
+  {
+    year:"1688", title:"War Again",
+    text:"The Nine Years' War begins. The king needs officers, and officers need money.",
+    choices:[
+      {t:"Buy your son a regiment", e:{wealth:-3,favor:2},
+       f:"Louis's constant wars drained France's treasury and left heavy debts."},
+      {t:"Keep your money", e:{favor:-1},
+       f:"Louis's aggression pushed rival states into coalitions to keep a balance of power."}
+    ]
+  }
+];
+
+let s, i, flag;
+
+function reset(){ s={favor:3,wealth:6,conscience:5}; i=0; flag=false; }
+function clamp(v){ return Math.max(0,Math.min(10,v)); }
+const game = document.getElementById('game');
+
+function meters(){
+  return `<div class="meters">${["favor","wealth","conscience"].map(k=>
+    `<div class="meter"><span>${k[0].toUpperCase()+k.slice(1)}</span>
+     <div class="bar"><div class="fill ${s[k]<=2?'low':''}" style="width:${s[k]*10}%"></div></div></div>`).join("")}</div>`;
+}
+
+function intro(){
+  reset();
+  game.innerHTML = `
+    <div class="fleur">⚜</div>
+    <h1>Favor at Versailles</h1>
+    <p style="text-align:center;margin-top:14px">France, 1682. Win the Sun King's favor without losing your fortune or your soul.</p>
+    <button class="main" onclick="show()">Enter the Palace</button>`;
+}
+
+function show(){
+  if(i>=scenes.length || s.wealth<=0) return ending();
+  const sc = scenes[i];
+  game.innerHTML = `${meters()}
+    <div class="year">${sc.year}</div>
+    <h2>${sc.title}</h2>
+    <p>${sc.text}</p>
+    ${sc.choices.map((c,n)=>`<button onclick="pick(${n})">${c.t}</button>`).join("")}`;
+}
+
+function pick(n){
+  const c = scenes[i].choices[n];
+  let note = "";
+  let e = c.e || {};
+  if(c.gamble){
+    if(Math.random()<.5){ e={wealth:2,favor:1}; note="You won! The king smiles."; }
+    else { e={wealth:-3,favor:1}; note="You lost badly, but the king admired your nerve."; }
+  }
+  for(const k in e) s[k]=clamp(s[k]+e[k]);
+  if(c.flag) flag=true;
+  game.innerHTML = `${meters()}
+    ${note?`<div class="result">${note}</div>`:""}
+    <div class="fact"><b>Fact</b>${c.f}</div>
+    <button class="main" onclick="next()">Continue</button>`;
+}
+
+function next(){ i++; show(); }
+
+function ending(){
+  let title, text;
+  if(s.wealth<=0){
+    title="Ruined";
+    text="Your money is gone. You sell your family lands and beg for a royal pension. You are now completely dependent on the king.";
+  } else if(flag && s.favor<=3){
+    title="Exile in Amsterdam";
+    text="Your kindness to your cousin was discovered. You flee to the Dutch Republic, a land of trade, toleration, and limited government.";
+  } else if(s.favor>=8){
+    title="Favorite of the Sun King";
+    text="You hand the king his shirt each morning. You have glory, but no real power. Your fate depends entirely on his mood.";
+  } else if(s.conscience>=7){
+    title="Home to the Provinces";
+    text="You leave court with your honor intact. You are respected at home, but forgotten at Versailles.";
+  } else {
+    title="Just Another Courtier";
+    text="You survive, neither loved nor ruined, one of thousands of nobles chasing the king's attention.";
+  }
+  game.innerHTML = `${meters()}
+    <div class="fleur">⚜</div>
+    <h1>${title}</h1>
+    <p style="margin-top:14px">${text}</p>
+    <div class="fact"><b>The Big Picture</b>Versailles turned powerful nobles into dependent courtiers who competed for the king's attention instead of challenging his power. That was the heart of Louis XIV's absolutism.</div>
+    <button class="main" onclick="intro()">Play Again</button>`;
+}
+
+intro();
+</script>
+</body>
+</html>
